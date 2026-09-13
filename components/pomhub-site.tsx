@@ -1,0 +1,40 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import styles from "./pomhub.module.css";
+
+type Item={name:string;creator:string;kind:string;length:string;note:string;index:number};
+const items:Item[]=[
+ {name:"Split decision",creator:"RubyRituals",kind:"Fresh",length:"4 min",note:"The cleanest way into a pomegranate, without turning the kitchen into a crime scene.",index:0},
+ {name:"Glaze of glory",creator:"LowAndGlossy",kind:"Savoury",length:"45 min",note:"Sticky pomegranate molasses, roast chicken and just enough sharpness to keep things interesting.",index:1},
+ {name:"Tossed & jewelled",creator:"LeavesLittle",kind:"Savoury",length:"12 min",note:"Feta, leaves, toasted walnuts and a shameless amount of ruby crunch.",index:2},
+ {name:"Shake your pom-pom",creator:"AfterHoursBar",kind:"Drinks",length:"6 min",note:"Tart, cold and dressed up for evening. Orange peel very much encouraged.",index:3},
+ {name:"Show us your tart",creator:"CrustIssues",kind:"Sweet",length:"70 min",note:"A crisp shell, softly set filling and a glossy crown of pomegranate seeds.",index:4},
+ {name:"Morning after bowl",creator:"SpoonMeSlowly",kind:"Quick",length:"5 min",note:"Yoghurt, granola, honey and the tiny jewels that make breakfast look intentional.",index:5},
+ {name:"Aubergine encounter",creator:"CharredAndReady",kind:"Savoury",length:"35 min",note:"Smoky roast aubergine, tahini, herbs and bright bursts of pomegranate.",index:6},
+ {name:"Three cold scoops",creator:"DeepFreeze",kind:"Sweet",length:"8 min",note:"Sharp pomegranate sorbet with mint. Clean, cold and unapologetically red.",index:7},
+ {name:"Hands on",creator:"OpenSesame",kind:"Fresh",length:"3 min",note:"Crack it open, loosen the seeds and let the fruit do the rest.",index:8}
+];
+const filters=["Trending","Fresh","Savoury","Sweet","Drinks","Quick","Saved"];
+function Brand(){return <span className={styles.brand}><b>pom</b><strong>hub</strong><i>●</i></span>}
+function Photo({item}: {item:Item}){return <span role="img" aria-label={item.name} className={styles.photo} style={{backgroundPosition:`${(item.index%3)*50}% ${Math.floor(item.index/3)*50}%`}}/>}
+function ReelPhoto({item,active}:{item:Item;active:boolean}){const [frame,setFrame]=useState(item.index);useEffect(()=>{setFrame(item.index);if(!active||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;let step=0;const reel=[item.index,(item.index+1)%items.length,(item.index+2)%items.length];const timer=window.setInterval(()=>{step=(step+1)%reel.length;setFrame(reel[step])},620);return()=>window.clearInterval(timer)},[active,item.index]);return <span role="img" aria-label={`${item.name} preview`} className={styles.photo} style={{backgroundPosition:`${(frame%3)*50}% ${Math.floor(frame/3)*50}%`}}/>}
+export function PomHubSite(){
+ const [filter,setFilter]=useState("Trending"),[query,setQuery]=useState(""),[saved,setSaved]=useState<string[]>([]),[selected,setSelected]=useState<Item|null>(null),[previewing,setPreviewing]=useState<string|null>(null); const dialog=useRef<HTMLDialogElement>(null);
+ useEffect(()=>{try{const x=JSON.parse(localStorage.getItem("pomhub-saved")||"[]");if(Array.isArray(x))setSaved(x)}catch{}},[]);
+ useEffect(()=>{if(selected)dialog.current?.showModal()},[selected]);
+ const visible=items.filter(x=>(filter==="Trending"||filter==="Saved"?filter!=="Saved"||saved.includes(x.name):x.kind===filter)&&`${x.name} ${x.creator} ${x.kind}`.toLowerCase().includes(query.toLowerCase()));
+ function toggle(name:string){const next=saved.includes(name)?saved.filter(x=>x!==name):[...saved,name];setSaved(next);localStorage.setItem("pomhub-saved",JSON.stringify(next))}
+ return <div className={styles.site}>
+  <header className={styles.header}><Link href="/" aria-label="Pomhub home"><Brand/></Link><nav><a href="#feed">Explore</a><a href="#collections">Collections</a><a href="#about">About</a></nav><label className={styles.search}>⌕<input aria-label="Search" placeholder="Search Pomhub" value={query} onChange={e=>setQuery(e.target.value)}/></label><a className={styles.zik} href="http://localhost:3000/home"><span>z</span> Zik Pass</a></header>
+  <main>
+   <section className={styles.hero}><div className={styles.heroMedia}><Photo item={items[0]}/><span className={styles.heroShade}/></div><div className={styles.heroCopy}><p className={styles.kicker}>Pomegranate. Uncut.</p><h1>Seed something<br/><em>you like.</em></h1><p>A hand-picked feed of the ripest recipes, brightest ideas and most satisfying splits on the internet.</p><div className={styles.heroActions}><a href="#feed">Start exploring <span>↘</span></a><button onClick={()=>setSelected(items[0])}>▶ Watch the story</button></div></div><div className={styles.heroMeta}><span>Featured today</span><b>01 / 09</b></div></section>
+   <section className={styles.strip}><p><b>Nothing explicit.</b> Just exceptionally good fruit.</p><span>18+ parody concept</span><span>Still photography only</span></section>
+   <section id="feed" className={styles.content}><aside><p className={styles.kicker}>Browse</p>{filters.map((x,i)=><button key={x} className={filter===x?styles.active:""} onClick={()=>setFilter(x)}><span>{["⌁","✦","◇","○","◉","↯","♡"][i]}</span>{x}<small>{x==="Saved"?saved.length:x==="Trending"?items.length:items.filter(y=>y.kind===x).length}</small></button>)}<div className={styles.asideCard}><i>100%</i><b>Pom.<br/>No filler.</b><p>Every picture is an original still. No odd loops. No awkward motion.</p></div></aside>
+    <div className={styles.feed}><div className={styles.feedHead}><div><p className={styles.kicker}>Curated for you</p><h2>{filter==="Trending"?"Freshly uploaded":filter}<sup>{visible.length}</sup></h2></div><button onClick={()=>setFilter("Trending")}>View all ↗</button></div><div className={styles.chips}>{filters.slice(0,6).map(x=><button key={x} onClick={()=>setFilter(x)} className={filter===x?styles.activeChip:""}>{x}</button>)}</div><div className={styles.grid}>{visible.map(item=><article key={item.name}><button className={styles.photoButton} onMouseEnter={()=>setPreviewing(item.name)} onMouseLeave={()=>setPreviewing(null)} onFocus={()=>setPreviewing(item.name)} onBlur={()=>setPreviewing(null)} onClick={()=>setSelected(item)}><ReelPhoto item={item} active={previewing===item.name}/><span className={styles.tag}>{item.kind}</span><span className={styles.time}>◷ {item.length}</span><span className={styles.reveal}>{previewing===item.name?"Playing still reel":"Hover to preview"} · Open ↗</span></button><div className={styles.cardTitle}><button onClick={()=>setSelected(item)}>{item.name}</button><button aria-label={`${saved.includes(item.name)?"Remove":"Save"} ${item.name}`} className={saved.includes(item.name)?styles.saved:""} onClick={()=>toggle(item.name)}>{saved.includes(item.name)?"♥":"♡"}</button></div><p className={styles.byline}><span/> {item.creator}<b>HD STILL</b></p></article>)}</div>{!visible.length&&<p className={styles.empty}>No ripe results. Try a different search or category.</p>}</div>
+   </section>
+   <section id="collections" className={styles.collection}><p className={styles.kicker}>This week’s collection</p><div><h2>Nine ways to make<br/>a little <em>mess.</em></h2><p>From first cut to last spoonful, explore our editor’s ruby-red shortlist.</p><a href="#feed">Open the collection ↗</a></div></section>
+  </main><footer id="about"><Brand/><p>The juiciest corner of the internet.</p><small>Food-only parody concept · Original AI-generated still photography · Not affiliated with Pornhub.<br/>Zik Pass affiliate experience prototype.</small></footer>
+  <dialog ref={dialog} className={styles.dialog} onClose={()=>setSelected(null)} onClick={e=>{if(e.target===e.currentTarget)dialog.current?.close()}}>{selected&&<><button className={styles.close} onClick={()=>dialog.current?.close()} aria-label="Close">×</button><Photo item={selected}/><div><p className={styles.kicker}>{selected.kind} · {selected.length}</p><h2>{selected.name}</h2><p>{selected.note}</p><small>Still photography. Full flavour. Zero strange animation.</small></div></>}</dialog>
+ </div>
+}
